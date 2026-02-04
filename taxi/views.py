@@ -1,9 +1,11 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy
 from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.decorators.http import require_GET
 
 from taxi.models import Driver, Car, Manufacturer
 from taxi.forms import (
@@ -164,13 +166,13 @@ class DriverDeleteView(LoginRequiredMixin, generic.DeleteView):
     success_url = reverse_lazy("")
 
 
+@require_GET
 @login_required
 def toggle_assign_to_car(request, pk):
-    driver = Driver.objects.get(id=request.user.id)
-    if (
-            Car.objects.get(id=pk) in driver.cars.all()
-    ):  # probably could check if car exists TODO!
-        driver.cars.remove(pk)
+    driver = get_user_model().objects.get(id=request.user.id)
+    car = get_object_or_404(Car, pk=pk)
+    if driver.cars.filter(pk=pk).exists():
+        driver.cars.remove(car)
     else:
-        driver.cars.add(pk)
+        driver.cars.add(car)
     return HttpResponseRedirect(reverse_lazy("taxi:car-detail", args=[pk]))
