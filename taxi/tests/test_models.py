@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 
-class SearchFormTest(TestCase):
+class DriverModelTest(TestCase):
     def setUp(self):
         self.driver = get_user_model().objects.create(
             username="driver-1",
