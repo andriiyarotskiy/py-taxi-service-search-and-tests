@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.http import urlencode
 
 
 class PublicDriverDeleteFormTest(TestCase):
@@ -60,3 +61,23 @@ class PrivateDriverTest(TestCase):
         )
         self.assertEqual(new_driver.username, form_data["username"])
         self.assertTrue(new_driver.check_password(form_data["password1"]))
+
+    def test_search_drivers_by_username(self):
+        get_user_model().objects.create_user(
+            username="driver-2",
+            password="django4321",
+            license_number="ABC12345",
+        )
+
+        base_url = reverse("taxi:driver-list")
+        query_string = urlencode({"username": "driver-2"})
+        url = f"{base_url}?{query_string}"
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "driver-2")
+
+        driver_list = response.context["driver_list"]
+        self.assertTrue(any(d.username == "driver-2" for d in driver_list))
+        self.assertFalse(any(d.username == "driver-1" for d in driver_list))
