@@ -3,6 +3,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils.http import urlencode
 
+from taxi.models import Car, Manufacturer
+
 
 class PublicDriverDeleteFormTest(TestCase):
     def setUp(self):
@@ -25,6 +27,15 @@ class PrivateDriverTest(TestCase):
             license_number="JAM12345",
         )
         self.client.force_login(self.driver)
+
+        self.manufacturer = Manufacturer.objects.create(
+            name="VAG GROUP",
+        )
+        self.car = Car.objects.create(
+            model="AUDI",
+            manufacturer=self.manufacturer,
+        )
+        self.car.drivers.set([self.driver])
 
     def test_retrieve_drivers_list(self):
         url = reverse("taxi:driver-list")
@@ -81,3 +92,29 @@ class PrivateDriverTest(TestCase):
         driver_list = response.context["driver_list"]
         self.assertTrue(any(d.username == "driver-2" for d in driver_list))
         self.assertFalse(any(d.username == "driver-1" for d in driver_list))
+
+    def test_search_cars_by_model(self):
+        base_url = reverse("taxi:car-list")
+        query_string = urlencode({"model": "audi"})
+        url = f"{base_url}?{query_string}"
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "audi")
+
+        car_list = response.context["car_list"]
+        self.assertTrue(any(d.model == "AUDI" for d in car_list))
+
+    def test_search_manufacturer_by_name(self):
+        base_url = reverse("taxi:manufacturer-list")
+        query_string = urlencode({"name": "vag"})
+        url = f"{base_url}?{query_string}"
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "vag")
+
+        manufacturer_list = response.context["manufacturer_list"]
+        self.assertTrue(any(d.name == "VAG GROUP" for d in manufacturer_list))
